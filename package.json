@@ -1,0 +1,12 @@
+{
+  "name": "hackbar-quantum",
+  "version": "0.1.0",
+  "description": "Hackbar Quantum for web pentesting",
+  "private": true,
+  "scripts": {
+    "test": "node tests/e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}
