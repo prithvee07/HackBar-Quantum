@@ -63,11 +63,12 @@
     <section id="section1"><!--
         --><div class="main_left sect1">
             <div id="loadurl" class="leftbut button">Load Url</div>
-            <div class="leftbut button">Split Url</div>
-            <div class="leftbut button">Execute</div>
+            <div id="spliturl" class="leftbut button">Split Url</div>
+            <div id="execute" class="leftbut button">Execute</div>
         </div><!--
         --><div class="main_right sect1">
             <textarea name="textarea" id="GETAREA"></textarea>
+            <div id="splitContainer" class="split-container"></div>
         </div><!--
     --></section>
     <section id="section2"><!--
@@ -87,6 +88,17 @@
     <section id="section5"><!--
         --><div class="main_left">Referrer</div><!--
         --><div class="main_right"><textarea name="textarea" id="REFERER"></textarea></div><!--
+    --></section>
+    <section id="section6"><!--
+        --><div class="main_left">Response</div><!--
+        --><div class="main_right">
+            <div id="executeWarning" class="execute-warning"></div>
+            <div id="executeStatus" class="execute-status"></div>
+            <div class="execute-subtitle">Headers</div>
+            <pre id="executeHeaders" class="execute-pre"></pre>
+            <div class="execute-subtitle">Body</div>
+            <pre id="executeBody" class="execute-pre"></pre>
+        </div><!--
     --></section>
   </body>
 </html>

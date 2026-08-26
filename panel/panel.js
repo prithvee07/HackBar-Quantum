@@ -110,8 +110,9 @@ function incAlphaNum(s, delta) {
 // focus, using the format chosen in the toolbar's INT/HEX/OCT/Alpha/AlphaNum select.
 function replaceSelectionValue(delta) {
     var el = document.activeElement;
-    var fieldIds = ['GETAREA', 'POSTDATA', 'COOKIES', 'REFERER'];
-    if (!el || fieldIds.indexOf(el.id) === -1) return;
+    var isTextField = el && (el.tagName === 'TEXTAREA' ||
+        (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')));
+    if (!isTextField) return;
     var start = el.selectionStart;
     var end = el.selectionEnd;
     if (start === end) return; // nothing selected
@@ -131,6 +132,77 @@ function replaceSelectionValue(delta) {
     el.focus();
     el.selectionStart = start;
     el.selectionEnd = start + replacement.length;
+}
+
+
+/****************************/
+/* SPLIT URL: param editor  */
+/****************************/
+
+function parseUrlForSplit(raw) {
+    try {
+        return new URL(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+function renderSplitRow(key, value) {
+    var row = $('<div class="split-row"></div>');
+    row.append($('<input type="text" class="split-key">').val(key));
+    row.append('<span> = </span>');
+    row.append($('<input type="text" class="split-value">').val(value));
+    row.append('<span class="split-remove" title="Remove parameter">✕</span>');
+    return row;
+}
+
+
+/*****************************************/
+/* EXECUTE: fire the request via fetch()  */
+/*****************************************/
+
+// Cookie/Referer are forbidden headers a plain fetch() can never set - overriding
+// them for real requires the webRequest/webRequestBlocking permission and a
+// blocking onBeforeSendHeaders listener. Registered narrowly (one origin) and
+// removed again as soon as the single fetch it covers settles.
+function withHeaderOverride(urlPattern, overrides, fn) {
+    if (overrides.cookie == null && overrides.referer == null) return fn();
+
+    function setHeader(headers, name, value) {
+        for (var i = 0; i < headers.length; i++) {
+            if (headers[i].name.toLowerCase() === name.toLowerCase()) {
+                headers[i].value = value;
+                return;
+            }
+        }
+        headers.push({ name: name, value: value });
+    }
+
+    function listener(details) {
+        var headers = details.requestHeaders;
+        if (overrides.cookie != null) setHeader(headers, 'Cookie', overrides.cookie);
+        if (overrides.referer != null) setHeader(headers, 'Referer', overrides.referer);
+        return { requestHeaders: headers };
+    }
+
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        listener,
+        { urls: [urlPattern] },
+        ['blocking', 'requestHeaders']
+    );
+
+    return fn().finally(function () {
+        browser.webRequest.onBeforeSendHeaders.removeListener(listener);
+    });
+}
+
+// Check for (and if missing, prompt for) a set of optional permissions. Must be
+// called from a user-gesture handler (a click) for the prompt to be allowed.
+function ensurePermissions(perms) {
+    return browser.permissions.contains(perms).then(function (has) {
+        if (has) return true;
+        return browser.permissions.request(perms);
+    });
 }
 
 
@@ -197,9 +269,158 @@ $( document ).ready(function() {
     });
 
 
-    // "Load URL"
+    // "Load URL": pull the active tab's URL into GETAREA
     $("#loadurl").click(function(){
-        myPort.postMessage({msg: "they clicked the button!"});
+        browser.tabs.query({ active: true, currentWindow: true }).then(function(tabs){
+            if (tabs[0]) $("#GETAREA").val(tabs[0].url);
+        }).catch(function(err){
+            console.error("Hackbar: failed to load current tab URL", err);
+        });
+    });
+
+
+    /*************/
+    /* SPLIT URL */
+    /*************/
+
+    var splitViewActive = false;
+    var splitBase = ""; // origin + pathname, captured when Split Url is clicked
+    var splitHash = ""; // fragment, preserved as-is (not split into rows)
+
+    function syncSplitToUrl() {
+        var params = [];
+        $("#splitContainer .split-row").each(function(){
+            var k = $(this).find(".split-key").val();
+            if (k === "") return;
+            var v = $(this).find(".split-value").val();
+            params.push(encodeURIComponent(k) + "=" + encodeURIComponent(v));
+        });
+        var qs = params.join("&");
+        $("#GETAREA").val(splitBase + (qs ? "?" + qs : "") + splitHash);
+    }
+
+    $("#spliturl").click(function(){
+        if (!splitViewActive) {
+            var url = parseUrlForSplit($("#GETAREA").val());
+            if (!url) return; // not a parseable URL, stay in raw view
+
+            splitBase = url.origin + url.pathname;
+            splitHash = url.hash;
+            $("#splitContainer").empty();
+            Array.from(url.searchParams.entries()).forEach(function(pair){
+                $("#splitContainer").append(renderSplitRow(pair[0], pair[1]));
+            });
+            $("#splitContainer").append('<button id="splitAddParam" class="button" type="button">+ Add Param</button>');
+
+            $("#GETAREA").hide();
+            $("#splitContainer").show();
+            splitViewActive = true;
+        } else {
+            syncSplitToUrl();
+            $("#splitContainer").hide().empty();
+            $("#GETAREA").show();
+            splitViewActive = false;
+        }
+    });
+
+    // Delegated: rows are added/removed dynamically
+    $("#splitContainer").on("input", ".split-key, .split-value", syncSplitToUrl);
+    $("#splitContainer").on("click", ".split-remove", function(){
+        $(this).closest(".split-row").remove();
+        syncSplitToUrl();
+    });
+    $("#splitContainer").on("click", "#splitAddParam", function(){
+        $("#splitAddParam").before(renderSplitRow("", ""));
+    });
+
+
+    /***********/
+    /* EXECUTE */
+    /***********/
+
+    var executing = false;
+
+    function renderExecuteError(message) {
+        $("#executeWarning").text("");
+        $("#executeStatus").text("Error").removeClass("ok").addClass("err");
+        $("#executeHeaders").text("");
+        $("#executeBody").text(message);
+        $("#section6").show();
+    }
+
+    function renderExecuteResponse(url, response, bodyText, overrideWarning) {
+        $("#executeWarning").text(overrideWarning || "");
+
+        $("#executeStatus")
+            .text(response.status + " " + response.statusText + "  (" + url + ")")
+            .toggleClass("ok", response.ok)
+            .toggleClass("err", !response.ok);
+
+        var headerLines = [];
+        response.headers.forEach(function(value, name){
+            headerLines.push(name + ": " + value);
+        });
+        $("#executeHeaders").text(headerLines.join("\n"));
+
+        $("#executeBody").text(bodyText);
+        $("#section6").show();
+    }
+
+    $("#execute").click(function(){
+        if (executing) return;
+
+        var rawUrl = $("#GETAREA").val().trim();
+        if (!rawUrl) return;
+
+        var url = parseUrlForSplit(rawUrl);
+        if (!url) {
+            renderExecuteError("Invalid URL: " + rawUrl);
+            return;
+        }
+
+        var wantsCookieOverride = $("#checkBoxCookies").is(":checked");
+        var wantsRefererOverride = $("#checkBoxReferrer").is(":checked");
+        var wantsPost = $("#checkBoxPost").is(":checked");
+
+        // Fetch needs the target origin's host permission to bypass CORS and actually
+        // read the response; Cookie/Referer overrides additionally need webRequest.
+        var neededPerms = { origins: ["<all_urls>"] };
+        if (wantsCookieOverride || wantsRefererOverride) {
+            neededPerms.permissions = ["webRequest", "webRequestBlocking"];
+        }
+
+        executing = true;
+        ensurePermissions(neededPerms).then(function(granted){
+            var overrideDenied = (wantsCookieOverride || wantsRefererOverride) && !granted;
+            var overrides = {
+                cookie: (granted && wantsCookieOverride) ? $("#COOKIES").val() : null,
+                referer: (granted && wantsRefererOverride) ? $("#REFERER").val() : null
+            };
+
+            var init = {
+                method: wantsPost ? "POST" : "GET",
+                credentials: "include", // send the browser's real cookies for this origin
+                redirect: "follow"
+            };
+            if (wantsPost) init.body = $("#POSTDATA").val();
+
+            return withHeaderOverride(url.origin + "/*", overrides, function(){
+                return fetch(url.href, init);
+            }).then(function(response){
+                return response.text().then(function(bodyText){
+                    renderExecuteResponse(
+                        url.href,
+                        response,
+                        bodyText,
+                        overrideDenied ? "Permission denied - sent without Cookie/Referer override" : ""
+                    );
+                });
+            });
+        }).catch(function(err){
+            renderExecuteError(String(err));
+        }).finally(function(){
+            executing = false;
+        });
     });
 
 

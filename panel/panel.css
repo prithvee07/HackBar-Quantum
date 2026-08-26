@@ -134,6 +134,72 @@ textarea{
 .menuitem:hover{
     background-color: rgba(0,0,0,0.3);
 }
+.split-container{
+    display: none;
+}
+.split-row{
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.split-key, .split-value{
+    border: 1px solid #3a3a3a;
+    padding: 2px 4px;
+    outline: 0;
+    font-family: inherit;
+}
+.split-key{
+    width: 30%;
+    margin-right: 4px;
+}
+.split-value{
+    flex: 1;
+}
+.split-remove{
+    margin-left: 6px;
+    cursor: pointer;
+    color: #a52929;
+    font-weight: 800;
+}
+#splitAddParam{
+    width: auto;
+    padding: 0 10px;
+    margin-top: 4px;
+}
+.execute-warning{
+    color: #a52929;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.execute-warning:empty{
+    display: none;
+}
+.execute-status{
+    font-weight: 700;
+    margin-bottom: 8px;
+    word-break: break-all;
+}
+.execute-status.ok{
+    color: #2fa529;
+}
+.execute-status.err{
+    color: #a52929;
+}
+.execute-subtitle{
+    font-weight: 700;
+    margin: 8px 0 4px;
+}
+.execute-pre{
+    background: #fff;
+    border: 1px solid #3a3a3a;
+    padding: 6px;
+    max-height: 150px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+    font-family: inherit;
+}
 .lfi-depth{
     display: flex;
     align-items: center;
