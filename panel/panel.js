@@ -234,4 +234,13 @@ $( document ).ready(function() {
     });
 
 
+    /*******/
+    /* PHP */
+    /*******/
+
+    $("#PHP .menuitem").click(function(){
+        insertAtCursor($("#GETAREA")[0], $(this).text());
+    });
+
+
 });

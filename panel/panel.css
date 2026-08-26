@@ -103,6 +103,11 @@ textarea{
 .checkboxes{
     margin-left: 150px;
 }
+.clearsaved{
+    width: auto;
+    padding: 0 10px;
+    margin-left: 25px;
+}
 .check2{
     margin-left: 25px;
 }
