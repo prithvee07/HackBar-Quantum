@@ -34,12 +34,18 @@
         --><div id="XSS" class="togglenav button">XSS ▾</div><!--
         --><div id="LFI" class="togglenav button">LFI ▾
             <div class="menu">
-                <div class="menuitem">php://input</div>
-                <div class="menuitem">php://filter/convert.base64-encode/resource=</div>
-                <div class="menuitem">../../etc/passwd</div>
-                <div class="menuitem">../../var/log/httpd</div>
-                <div class="menuitem">../../proc/self/environ</div>
-                <div class="menuitem">../../etc/my.cnf</div>
+                <div class="menuitem" data-lfi="raw">php://input</div>
+                <div class="menuitem" data-lfi="raw">php://filter/convert.base64-encode/resource=</div>
+                <div class="menuitem" data-lfi="traversal" data-file="etc/passwd">../../etc/passwd</div>
+                <div class="menuitem" data-lfi="traversal" data-file="var/log/httpd">../../var/log/httpd</div>
+                <div class="menuitem" data-lfi="traversal" data-file="proc/self/environ">../../proc/self/environ</div>
+                <div class="menuitem" data-lfi="traversal" data-file="etc/my.cnf">../../etc/my.cnf</div>
+                <div class="lfi-depth">
+                    <span>../ depth:</span>
+                    <button id="lfiDepthDown" class="button" type="button">-</button>
+                    <span id="lfiDepthValue">6</span>
+                    <button id="lfiDepthUp" class="button" type="button">+</button>
+                </div>
             </div>
         </div><!--
         --><div id="PHP" class="togglenav button">PHP ▾

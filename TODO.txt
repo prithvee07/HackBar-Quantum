@@ -1,4 +1,3 @@
-LFI with php filter ; "../" ..
 Replace function
 Network Part
 Encoding & Encryption
